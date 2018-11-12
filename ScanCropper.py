@@ -183,11 +183,9 @@ class ScanCropper(Tkinter.Frame):
         self.pressPage(self.PAGE_UP)
 
     def on_canvas_KeyRel_PageDown(self, event=None):
-        print('Canvas Page Down')
         self.pressPage(self.PAGE_DOWN)
 
     def on_canvas_KeyRel_PageUp(self, event=None):
-        print('Canvas Page Up')
         self.pressPage(self.PAGE_UP)
 
     def on_lbFiles_mouseClick_1(self, event=None):
@@ -382,10 +380,13 @@ class ScanCropper(Tkinter.Frame):
                 if os.path.isfile(os.path.join(self.config['input-directory'], item)):
                     if item.lower().endswith(suffixtuple): # The arg can be a tuple of suffixes to look for
                         self.lbFiles.insert(tk.END, item)
+            self.update_idletasks()
             # If there are items in listbox, select the 1st one
             if self.lbFiles.size() > 0:
                 self.lbFiles.select_set(0)
-                #self.load_lbFiles_image(self.lbFiles.get(tk.ACTIVE))
+                #self.lbFiles.activate(0)
+                self.load_lbFiles_image(self.lbFiles.get(tk.ACTIVE))
+                self.canvas.focus_set()
 
 
 class CreateToolTip(object):
