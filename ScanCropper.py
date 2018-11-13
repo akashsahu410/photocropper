@@ -63,22 +63,34 @@ class ScanCropper(Tkinter.Frame):
         self.canvas.bind('<B1-Motion>',self.canvas_mouseb1move_callback)
         self.canvas.bind('<Button-1>',self.canvas_mouse1_callback)
         self.canvas.bind('<ButtonRelease-1>',self.canvas_mouseup1_callback)
-        self.canvas.bind('<KeyRelease-Down>',self.canvas_KeyRel_ArrowDown)
-        self.canvas.bind('<KeyRelease-KP_Next>' \
-            ,self.on_canvas_KeyRel_KeyPad_PageDown)
-        self.canvas.bind('<KeyRelease-KP_Prior>' \
-            ,self.on_canvas_KeyRel_KeyPad_PageUp)
-        self.canvas.bind('<KeyRelease-Left>',self.canvas_KeyRel_ArrowLeft)
-        self.canvas.bind('<KeyRelease-Next>',self.on_canvas_KeyRel_PageDown)
-        self.canvas.bind('<KeyRelease-Prior>',self.on_canvas_KeyRel_PageUp)
-        self.canvas.bind('<KeyRelease-Right>',self.canvas_KeyRel_ArrowRight)
-        self.canvas.bind('<KeyRelease-Up>',self.canvas_KeyRel_ArrowUp)
-        self.canvas.bind('<Shift-KeyRelease-Up>' \
-            ,self.canvas_KeyRel_ArrowUp_Shift)
-        self.canvas.bind('<KeyRelease-space>',self.canvas_KeyRel_space)
+        self.canvas.bind('<KeyRelease-Down>',self.canvas_ArrowDown)
+        self.canvas.bind('<Shift-KeyRelease-Down>',self.canvas_ArrowDown_Shift)
+        self.canvas.bind('<KeyRelease-KP_Down>',self.canvas_KP_ArrowDown)
+        self.canvas.bind('<KeyRelease-KP_Left>',self.canvas_KP_ArrowLeft)
+        self.canvas.bind('<KeyRelease-KP_Next>',self.canvas_KP_PageDown)
+        self.canvas.bind('<KeyRelease-KP_Prior>',self.canvas_KP_PageUp)
+        self.canvas.bind('<KeyRelease-KP_Right>',self.canvas_KP_ArrowRight)
+        self.canvas.bind('<KeyRelease-KP_Up>',self.canvas_KP_ArrowUp)
+        self.canvas.bind('<KeyRelease-Left>',self.canvas_ArrowLeft)
+        self.canvas.bind('<Shift-KeyRelease-Left>',self.canvas_ArrowLeft_Shift)
+        self.canvas.bind('<KeyRelease-Next>',self.canvas_PageDown)
+        self.canvas.bind('<KeyRelease-Prior>',self.canvas_PageUp)
+        self.canvas.bind('<KeyRelease-Right>',self.canvas_ArrowRight)
+        self.canvas.bind('<Shift-KeyRelease-Right>' \
+            ,self.canvas_ArrowRight_Shift)
+        self.canvas.bind('<KeyRelease-Up>',self.canvas_ArrowUp)
+        self.canvas.bind('<Shift-KeyRelease-Up>',self.canvas_ArrowUp_Shift)
+        self.canvas.bind('<KeyRelease-space>',self.canvas_SPACE)
         self.frameButtons = Tkinter.Frame(self.frameMain,borderwidth='1'
             ,height='1')
         self.frameButtons.pack(anchor='nw',fill='x',side='top')
+        self.btnInputDir = Tkinter.Button(self.frameButtons,text='Input ...')
+        self.btnInputDir.pack(anchor='sw',side='left')
+        self.btnInputDir.bind('<ButtonRelease-1>',self.on_btnInputDir_ButRel_1)
+        self.btnOutputDir = Tkinter.Button(self.frameButtons,text='Output ...')
+        self.btnOutputDir.pack(anchor='sw',side='left')
+        self.btnOutputDir.bind('<ButtonRelease-1>' \
+            ,self.on_btnOutputDir_ButRel_1)
         self.resetButton = Tkinter.Button(self.frameButtons
             ,activebackground='#F00',command=self.reset,text='Reset')
         self.resetButton.pack(anchor='sw',expand='yes',fill='x',side='left')
@@ -100,6 +112,12 @@ class ScanCropper(Tkinter.Frame):
         self.quitButton = Tkinter.Button(self.frameButtons
             ,activebackground='#F00',command=self.quit,text='Quit')
         self.quitButton.pack(anchor='sw',expand='yes',fill='x',side='left')
+        self.quitButton.bind('<ButtonRelease-1>',self.on_quitButton_ButRel_1)
+        self.frmStatus = Tkinter.Frame(self.frameMain)
+        self.frmStatus.pack(anchor='nw',fill='y',side='top')
+        self._Label1 = Tkinter.Label(self.frmStatus,relief='sunken'
+            ,text='This is label')
+        self._Label1.pack(anchor='sw',expand='yes',fill='y',side='top')
         #
         #Your code here
         #
@@ -110,6 +128,8 @@ class ScanCropper(Tkinter.Frame):
         self.unzoomButton_ttp = CreateToolTip(self.unzoomButton, "Unzoom, view all image")
         self.plusButton_ttp = CreateToolTip(self.plusButton, "Plus box, extent rectangle")
         self.goButton_ttp = CreateToolTip(self.goButton, "Go, begin cropping")
+        self.btnInputDir_ttp = CreateToolTip(self.btnInputDir, "Select input directory")
+        self.bthOutputDir_ttp = CreateToolTip(self.btnOutputDir, "Select output directory")
         self.croprect_start = None
         self.croprect_end = None
         self.crop_count = 0
@@ -127,29 +147,79 @@ class ScanCropper(Tkinter.Frame):
         self._after_id = None
         self.filename = None
         self.lbIndex = None # Keeps item index in listbox
+        self.cropIndex = 0
     #
     #Start of event handler methods
     #
 
 
-    def canvas_KeyRel_ArrowDown(self, event=None):
-        print("Pressed Canvas Arrow Down")
+    def canvas_ArrowDown(self, event=None):
+        # Moves crop rectangle one pixel DOWN
+        self.move_rect(self.cropIndex, 0, 1)
 
-    def canvas_KeyRel_ArrowLeft(self, event=None):
-        print("Pressed Canvas Arrow Left")
+    def canvas_ArrowDown_Shift(self,Event=None):
+        # Moves crop rectangle AMOUNT OF pixels DOWN
+        self.move_rect(self.cropIndex, 0, int(self.config['movestep']))
 
-    def canvas_KeyRel_ArrowRight(self, event=None):
-        print('Pressed Canvas Arrow Right')
+    def canvas_ArrowLeft(self, event=None):
+        # Moves crop rectangle one pixel LEFT
+        self.move_rect(self.cropIndex, -1, 0)
 
-    def canvas_KeyRel_ArrowUp(self, event=None):
-        print('Pressed Canvas Arrow Up')
+    def canvas_ArrowLeft_Shift(self, event=None):
+        # Moves crop rectangle AMOUNT OF pixels LEFT
+        self.move_rect(self.cropIndex, -int(self.config['movestep']), 0)
 
-    def canvas_KeyRel_ArrowUp_Shift(self, event=None):
-        # Shift + ArrowUp
-        print('Pressed Canvas Shift Arrow Up')
+    def canvas_ArrowRight(self, event=None):
+        # Moves crop rectangle one pixel RIGHT
+        self.move_rect(self.cropIndex, 1, 0)
 
-    def canvas_KeyRel_space(self, event=None):
-        print('Pressed Canvas SPACE')
+    def canvas_ArrowRight_Shift(self, event=None):
+        # Moves crop rectangle AMOUNT OF pixels RIGHT
+        self.move_rect(self.cropIndex, int(self.config['movestep']), 0)
+
+    def canvas_ArrowUp(self, event=None):
+        # Moves crop rectangle one pixel UP
+        self.move_rect(self.cropIndex, 0, -1)
+
+    def canvas_ArrowUp_Shift(self, event=None):
+        # Moves crop rectangle AMOUNT OF pixels UP
+        self.move_rect(self.cropIndex, 0, -int(self.config['movestep']))
+
+    def canvas_KP_ArrowDown(self, event=None):
+        # Moves crop rectangle one pixel DOWN
+        self.move_rect(self.cropIndex, 0, 1)
+
+    def canvas_KP_ArrowLeft(self, event=None):
+        # Moves crop rectangle one pixel LEFT
+        self.move_rect(self.cropIndex, -1, 0)
+
+    def canvas_KP_ArrowRight(self, event=None):
+        # Moves crop rectangle one pixel RIGHT
+        self.move_rect(self.cropIndex, 1, 0)
+
+    def canvas_KP_ArrowUp(self, event=None):
+        # Moves crop rectangle one pixel UP
+        self.move_rect(self.cropIndex, 0, -1)
+
+    def canvas_KP_PageDown(self, event=None):
+        # Moves file selection in listbox one down
+        self.pressPage(self.PAGE_DOWN)
+
+    def canvas_KP_PageUp(self, event=None):
+        # Moves file selection in listbox one up
+        self.pressPage(self.PAGE_UP)
+
+    def canvas_PageDown(self, event=None):
+        # Moves file selection in listbox one DOWN
+        self.pressPage(self.PAGE_DOWN)
+
+    def canvas_PageUp(self, event=None):
+        # Moves file selection in listbox one UP
+        self.pressPage(self.PAGE_UP)
+
+    def canvas_SPACE(self, event=None):
+        # Crops selected areas
+        self.start_cropping()
 
     def canvas_mouse1_callback(self, event=None):
         self.croprect_start = (event.x, event.y)
@@ -176,28 +246,37 @@ class ScanCropper(Tkinter.Frame):
             self.after_cancel(self._after_id)
         self._after_id = self.after(1200, self.draw_after_resize)
 
-    def on_canvas_KeyRel_KeyPad_PageDown(self,Event=None):
-        self.pressPage(self.PAGE_DOWN)
+    def on_btnInputDir_ButRel_1(self, event=None):
+        pass
 
-    def on_canvas_KeyRel_KeyPad_PageUp(self,Event=None):
-        self.pressPage(self.PAGE_UP)
-
-    def on_canvas_KeyRel_PageDown(self, event=None):
-        self.pressPage(self.PAGE_DOWN)
-
-    def on_canvas_KeyRel_PageUp(self, event=None):
-        self.pressPage(self.PAGE_UP)
+    def on_btnOutputDir_ButRel_1(self, event=None):
+        pass
 
     def on_lbFiles_mouseClick_1(self, event=None):
         self.lbIndex = self.lbFiles.curselection()[0]
         self.load_lbFiles_image(self.lbFiles.get(tk.ACTIVE))
+
+    def on_quitButton_ButRel_1(self, event=None):
+        conf['geometry'] = self.winfo_toplevel().geometry()
+        conf.save()
+        self.quit()
     #
     #Start of non-Rapyd user code
     #
     
+    # Constants for listbox with image file names
     PAGE_UP = -1
     PAGE_DOWN = 1
     
+    # Moves rectangle with "index" by "step" pixels
+    def move_rect(self, index, xstep, ystep):
+        if len(self.crop_rects) == index + 1:
+            cr = self.crop_rects[index]
+            self.canvas.delete(self.canvas_rects[index])
+            self.canvas_rects.pop(index)
+            self.crop_rects[index] = cr.move_rect(xstep, ystep)
+            self.redraw_rect()
+
     def pressPage(self, direction=0):
         index = self.lbFiles.curselection()[0] + direction
         self.lbFiles.selection_clear(0, tk.END)
@@ -224,10 +303,13 @@ class ScanCropper(Tkinter.Frame):
         self.filename = os.path.join(self.config['input-directory'], imagePath)
         if os.path.exists(self.filename):
             self.loadimage()
+            self.winfo_toplevel().title('Scan Cropper - ' + imagePath)
+            self.redraw_rect()
        
     def set_crop_area(self):
         r = Rect(self.croprect_start, self.croprect_end)
-
+        r.set_thumboffset(int(self.config['thumboffset']))
+        
         # adjust dimensions
         r.clip_to(self.image_thumb_rect)
 
@@ -312,7 +394,7 @@ class ScanCropper(Tkinter.Frame):
     def drawrect(self, rect):
         bbox = (rect.left, rect.top, rect.right, rect.bottom)
         cr = self.canvas.create_rectangle(
-            bbox, activefill='', fill='red', stipple='gray25')
+            bbox, activefill='', fill='yellow', stipple=self.config['stipple'])
         self.canvas_rects.append(cr)
 
     def reset(self):
@@ -326,6 +408,7 @@ class ScanCropper(Tkinter.Frame):
     def displayimage(self):
         self.photoimage = ImageTk.PhotoImage(self.image_thumb)
         w, h = self.image_thumb.size
+        self.canvas.delete("all") # Remove remnants of previous crop area
         
         self.canvas.create_image(
             int(self.config['thumboffset']),
@@ -363,14 +446,14 @@ class ScanCropper(Tkinter.Frame):
         for croparea in self.crop_rects:
             cropcount += 1
             f = self.newfilename(cropcount)
-            print f, croparea
+            #print f, croparea
             self.crop(croparea, f)
-        self.quit()
 
     def crop(self, croparea, filename):
         ca = (croparea.left, croparea.top, croparea.right, croparea.bottom)
         newimg = self.image.crop(ca)
-        newimg.save(filename)
+        imagePath = os.path.join(self.config['input-directory'], filename)
+        newimg.save(imagePath)
         
     def load_image_list(self):
         if self.config is not None:
@@ -384,7 +467,6 @@ class ScanCropper(Tkinter.Frame):
             # If there are items in listbox, select the 1st one
             if self.lbFiles.size() > 0:
                 self.lbFiles.select_set(0)
-                #self.lbFiles.activate(0)
                 self.load_lbFiles_image(self.lbFiles.get(tk.ACTIVE))
                 self.canvas.focus_set()
 
@@ -432,7 +514,7 @@ class CreateToolTip(object):
         self.tw.wm_overrideredirect(True)
         self.tw.wm_geometry("+%d+%d" % (x, y))
         label = tk.Label(self.tw, text=self.text, justify='left',
-            background="#ffffff", relief='solid', borderwidth=1,
+            background="#fef9e7", relief='solid', borderwidth=1,
             wraplength = self.wraplength)
         label.pack(ipadx=1)
 
@@ -562,23 +644,19 @@ class ScanConfig(object):
     def __init__(self, configFile=None):
         self.section = self.__class__.__name__.upper()
         self.get_default_config()
-
+        
         if configFile is None:
             # Create default configuration in OS-independent "home" directory
             configPath = os.path.join(os.path.expanduser('~'), '.config', self.__class__.__name__.lower())
             if not os.path.exists(configPath):
                 os.makedirs(configPath)
             self.configFile = os.path.join(configPath, 'config.ini')
+            self.config = confpars.SafeConfigParser(self.get_default_dict())
             if os.path.exists(self.configFile):
-                self.config = confpars.SafeConfigParser()
                 self.config.read(self.configFile)
-            else:
-                self.config = self.default_config
-                with open(self.configFile, 'wb') as cf:
-                    self.config.write(cf)
         elif os.path.exists(configFile):
             self.configFile = os.path.normpath(configFile)
-            self.config = confpars.SafeConfigParser()
+            self.config = confpars.SafeConfigParser(self.get_default_dict())
             self.config.read(self.configFile)
         else:
             # Path given, but does not exist
@@ -598,6 +676,16 @@ class ScanConfig(object):
         self.default_config.set(self.section, 'image-extensions', 'tif tiff jpg jpeg gif png')
         # Thumbnail offset
         self.default_config.set(self.section, 'thumboffset', '4')
+        # Stipple pattern
+        self.default_config.set(self.section, 'stipple', 'gray12')
+        # Amount of pixels to move rectangle in all directions
+        self.default_config.set(self.section, 'movestep', '10')
+        # Amount of pixels to resize rectangle
+        self.default_config.set(self.section, 'resizestep', '10')
+
+    def get_default_dict(self):
+        config_dict = {sect: dict(self.default_config.items(sect)) for sect in self.default_config.sections()}
+        return config_dict
         
     def __getitem__(self, key):
         try:
@@ -608,7 +696,10 @@ class ScanConfig(object):
             except confpars.NoOptionError:
                 return None
 
-    def __del__(self):
+    def __setitem__(self, key, value):
+        self.config.set(self.section, key, value)
+
+    def save(self):
         with open(self.configFile, 'wb') as cf:
             self.config.write(cf)
 
@@ -616,6 +707,8 @@ class ScanConfig(object):
 pass #---end-of-form---
 
 def window_close():
+    conf['geometry'] = Root.geometry()
+    conf.save() # Save configuration to keep window geometry
     Root.destroy()
 
 try:
