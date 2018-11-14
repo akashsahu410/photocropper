@@ -66,6 +66,7 @@ class ScanCropper(Tkinter.Frame):
         self.canvas.bind('<KeyRelease-Down>',self.canvas_ArrowDown)
         self.canvas.bind('<Shift-KeyRelease-Down>',self.canvas_ArrowDown_Shift)
         self.canvas.bind('<KeyRelease-KP_Down>',self.canvas_KP_ArrowDown)
+        self.canvas.bind('<KeyRelease-KP_Enter>',self.canvas_KP_Enter)
         self.canvas.bind('<KeyRelease-KP_Left>',self.canvas_KP_ArrowLeft)
         self.canvas.bind('<KeyRelease-KP_Next>',self.canvas_KP_PageDown)
         self.canvas.bind('<KeyRelease-KP_Prior>',self.canvas_KP_PageUp)
@@ -75,6 +76,7 @@ class ScanCropper(Tkinter.Frame):
         self.canvas.bind('<Shift-KeyRelease-Left>',self.canvas_ArrowLeft_Shift)
         self.canvas.bind('<KeyRelease-Next>',self.canvas_PageDown)
         self.canvas.bind('<KeyRelease-Prior>',self.canvas_PageUp)
+        self.canvas.bind('<KeyRelease-Return>',self.canvas_Return)
         self.canvas.bind('<KeyRelease-Right>',self.canvas_ArrowRight)
         self.canvas.bind('<Shift-KeyRelease-Right>' \
             ,self.canvas_ArrowRight_Shift)
@@ -201,6 +203,10 @@ class ScanCropper(Tkinter.Frame):
         # Moves crop rectangle one pixel UP
         self.move_rect(self.cropIndex, 0, -1)
 
+    def canvas_KP_Enter(self,Event=None):
+        # Crops selected areas
+        self.start_cropping()
+
     def canvas_KP_PageDown(self, event=None):
         # Moves file selection in listbox one down
         self.pressPage(self.PAGE_DOWN)
@@ -216,6 +222,10 @@ class ScanCropper(Tkinter.Frame):
     def canvas_PageUp(self, event=None):
         # Moves file selection in listbox one UP
         self.pressPage(self.PAGE_UP)
+
+    def canvas_Return(self,Event=None):
+        # Crops selected areas
+        self.start_cropping()
 
     def canvas_SPACE(self, event=None):
         # Crops selected areas
@@ -446,13 +456,14 @@ class ScanCropper(Tkinter.Frame):
         for croparea in self.crop_rects:
             cropcount += 1
             f = self.newfilename(cropcount)
-            #print f, croparea
+            print f, croparea
             self.crop(croparea, f)
 
     def crop(self, croparea, filename):
         ca = (croparea.left, croparea.top, croparea.right, croparea.bottom)
         newimg = self.image.crop(ca)
-        imagePath = os.path.join(self.config['input-directory'], filename)
+        print(self.config['output-directory'])
+        imagePath = os.path.join(self.config['output-directory'], filename)
         newimg.save(imagePath)
         
     def load_image_list(self):
@@ -651,12 +662,14 @@ class ScanConfig(object):
             if not os.path.exists(configPath):
                 os.makedirs(configPath)
             self.configFile = os.path.join(configPath, 'config.ini')
-            self.config = confpars.SafeConfigParser(self.get_default_dict())
+            self.config = confpars.SafeConfigParser(self.get_default_config())
             if os.path.exists(self.configFile):
                 self.config.read(self.configFile)
+            else:
+                self.config.add_section(self.section)
         elif os.path.exists(configFile):
             self.configFile = os.path.normpath(configFile)
-            self.config = confpars.SafeConfigParser(self.get_default_dict())
+            self.config = confpars.SafeConfigParser(self.get_default_config())
             self.config.read(self.configFile)
         else:
             # Path given, but does not exist
@@ -664,29 +677,17 @@ class ScanConfig(object):
     
     # Gets default configuration
     def get_default_config(self):
-        self.default_config = confpars.SafeConfigParser()
-        self.default_config.add_section(self.section)
-        # Position and size of main window
-        self.default_config.set(self.section, 'geometry', '1024x768+10+10')
-        # Directory with pictures to process
-        self.default_config.set(self.section, 'input-directory', os.path.expanduser('~'))
-        # Directory to write resulting pictures into
-        self.default_config.set(self.section, 'output-directory', os.path.expanduser('~'))
-        # Extensions of files considered to be pictures
-        self.default_config.set(self.section, 'image-extensions', 'tif tiff jpg jpeg gif png')
-        # Thumbnail offset
-        self.default_config.set(self.section, 'thumboffset', '4')
-        # Stipple pattern
-        self.default_config.set(self.section, 'stipple', 'gray12')
-        # Amount of pixels to move rectangle in all directions
-        self.default_config.set(self.section, 'movestep', '10')
-        # Amount of pixels to resize rectangle
-        self.default_config.set(self.section, 'resizestep', '10')
+        return {
+            'geometry': '1024x768+10+10', # Position and size of main window
+            'input-directory': os.path.expanduser('~'), # Directory with pictures to process
+            'output-directory': os.path.expanduser('~'), # Directory to write resulting pictures into
+            'image-extensions': 'tif tiff jpg jpeg gif png', # Extensions of files considered to be pictures
+            'thumboffset': '4', # Thumbnail offset
+            'stipple': 'gray12', # Stipple pattern
+            'movestep' :'10', # Amount of pixels to move rectangle in all directions
+            'resizestep': '10' # Amount of pixels to resize rectangle
+        }
 
-    def get_default_dict(self):
-        config_dict = {sect: dict(self.default_config.items(sect)) for sect in self.default_config.sections()}
-        return config_dict
-        
     def __getitem__(self, key):
         try:
             return self.config.get(self.section, key)
