@@ -1,1 +1,1 @@
-# scancropper
+# Photo Cropper

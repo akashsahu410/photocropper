@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
+'''
 import rpErrorHandler
 import Tkinter
 #------------------------------------------------------------------------------#
@@ -10,6 +11,35 @@ import Tkinter
 #------------------------------------------------------------------------------#
 class PhotoCropper(Tkinter.Frame):
     def __init__(self,Master=None,*pos,**kw):
+        kw['borderwidth'] = '5'
+        kw['height'] = '1'
+        kw['width'] = '1'
+# This code was deliberately ugly in order to prevent Rapyd-Tk from being
+# too smart
+
+'''
+import argparse
+import os
+import re
+import sys
+
+try: # for Python2
+    import ConfigParser as confpars
+    import Tkinter, tkMessageBox
+    tk = Tkinter
+except ModuleNotFoundError: # for Python3
+    try:
+        import configparser as confpars
+        import tkinter as tk
+        Tkinter = tk # For compatibility with generated code
+        import tkinter.messagebox as tkMessageBox
+    except:
+        raise
+
+from PIL import Image, ImageTk
+    
+class PhotoCropper(Tkinter.Frame):
+    def __init__(self, Master=None, *pos, **kw):
         kw['borderwidth'] = '5'
         kw['height'] = '1'
         kw['width'] = '1'
@@ -39,6 +69,8 @@ class PhotoCropper(Tkinter.Frame):
         self.canvas.bind('<Button-1>',self.canvas_mouse1_callback)
         self.canvas.bind('<ButtonRelease-1>',self.canvas_mouseup1_callback)
         self.canvas.bind('<KeyRelease-Down>',self.canvas_ArrowDown)
+        self.canvas.bind('<Control-KeyRelease-Down>' \
+            ,self.canvas_Control_ArrowDown)
         self.canvas.bind('<Shift-KeyRelease-Down>',self.canvas_ArrowDown_Shift)
         self.canvas.bind('<KeyRelease-KP_Add>',self.canvas_KP_Add)
         self.canvas.bind('<KeyRelease-KP_Down>',self.canvas_KP_ArrowDown)
@@ -50,14 +82,19 @@ class PhotoCropper(Tkinter.Frame):
         self.canvas.bind('<KeyRelease-KP_Subtract>',self.canvas_KP_Subtract)
         self.canvas.bind('<KeyRelease-KP_Up>',self.canvas_KP_ArrowUp)
         self.canvas.bind('<KeyRelease-Left>',self.canvas_ArrowLeft)
+        self.canvas.bind('<Control-KeyRelease-Left>' \
+            ,self.canvas_Control_ArrowLeft)
         self.canvas.bind('<Shift-KeyRelease-Left>',self.canvas_ArrowLeft_Shift)
         self.canvas.bind('<KeyRelease-Next>',self.canvas_PageDown)
         self.canvas.bind('<KeyRelease-Prior>',self.canvas_PageUp)
         self.canvas.bind('<KeyRelease-Return>',self.canvas_Return)
         self.canvas.bind('<KeyRelease-Right>',self.canvas_ArrowRight)
+        self.canvas.bind('<Control-KeyRelease-Right>' \
+            ,self.canvas_Control_ArrowRight)
         self.canvas.bind('<Shift-KeyRelease-Right>' \
             ,self.canvas_ArrowRight_Shift)
         self.canvas.bind('<KeyRelease-Up>',self.canvas_ArrowUp)
+        self.canvas.bind('<Control-KeyRelease-Up>',self.canvas_Control_ArrowUp)
         self.canvas.bind('<Shift-KeyRelease-Up>',self.canvas_ArrowUp_Shift)
         self.canvas.bind('<KeyRelease-space>',self.canvas_SPACE)
         self.frameButtons = Tkinter.Frame(self.frameMain,borderwidth='1'
@@ -117,7 +154,7 @@ class PhotoCropper(Tkinter.Frame):
         self.y0 = 0
         self.n = 0
         self.config = None
-        self.delimiters = ' |,|\t|#|\|'
+        self.delimiters = ' |,|\t|#|\|' # String delimiters
         self._after_id = None
         self.filename = None
         self.lbIndex = None # Keeps item index in listbox
@@ -159,7 +196,23 @@ class PhotoCropper(Tkinter.Frame):
         # MOVES crop rectangle AMOUNT OF pixels UP
         self.move_rect(self.cropIndex, 0, -int(self.config['move-step']))
 
-    def canvas_KP_Add(self,Event=None):
+    def canvas_Control_ArrowDown(self,Event=None):
+        # INCREASES size of crop rectangle by ONE pixel on Y-axis
+        self.resize_rect(self.cropIndex, 0, 1)
+
+    def canvas_Control_ArrowLeft(self, event=None):
+        # REDUCES size of crop rectangle by ONE pixel on X-axis
+        self.resize_rect(self.cropIndex, -1, 0)
+
+    def canvas_Control_ArrowRight(self,Event=None):
+        # INCREASES size of crop rectangle by ONE pixel on X-axis
+        self.resize_rect(self.cropIndex, 1, 0)
+
+    def canvas_Control_ArrowUp(self, event=None):
+        # REDUCES size of crop rectangle by ONE pixel on Y-axis
+        self.resize_rect(self.cropIndex, 0, -1)
+
+    def canvas_KP_Add(self, event=None):
         # Enlarges rectangle for AMOUNT OF pixels
         self.resize_rect(self.cropIndex, int(self.config['resize-step']), int(self.config['resize-step']))
 
@@ -179,7 +232,7 @@ class PhotoCropper(Tkinter.Frame):
         # MOVES crop rectangle ONE pixel UP
         self.move_rect(self.cropIndex, 0, -1)
 
-    def canvas_KP_Enter(self,Event=None):
+    def canvas_KP_Enter(self, event=None):
         # CROPS selected areas
         self.start_cropping()
 
@@ -191,7 +244,7 @@ class PhotoCropper(Tkinter.Frame):
         # Moves file selection in listbox one up
         self.pressPage(self.PAGE_UP)
 
-    def canvas_KP_Subtract(self,Event=None):
+    def canvas_KP_Subtract(self, event=None):
         # Reduces rectangle by AMOUNT OF pixels
         self.resize_rect(self.cropIndex, -int(self.config['resize-step']), -int(self.config['resize-step']))
 
@@ -743,25 +796,10 @@ try:
     #     can properly display a Rapyd-aware error message.                    #
     #--------------------------------------------------------------------------#
 
-    #Adjust sys.path so we can find other modules of this project
-    import sys
+    # Adjust sys.path so we can find other modules of this project
     if '.' not in sys.path:
         sys.path.append('.')
     #Put lines to import other modules of this project here
-    import argparse    
-    import tkFileDialog
-    import tkMessageBox
-    import os
-    import re
-    try:
-        # for Python2
-        import ConfigParser as confpars
-    except ImportError:
-        # for Python3
-        import configparser as confpars
-    #
-    from PIL import Image, ImageTk
-    tk = Tkinter
  
     if __name__ == '__main__':
         # Parse arguments
@@ -770,12 +808,17 @@ try:
         parser.add_argument('-d', '--debug', default=0, help='Debug level')
         args = parser.parse_args()
 
+        '''
 
         Root = Tkinter.Tk()
         Tkinter.CallWrapper = rpErrorHandler.CallWrapper
         App = PhotoCropper(Root)
         App.pack(expand='yes',fill='both')
 
+        '''
+        Root = Tkinter.Tk()
+        App = PhotoCropper(Root)
+        App.pack(expand='yes', fill='both')
         # Load configuration
         conf = ScanConfig(args.configFile, App.__class__.__name__)
         # Set window
@@ -790,4 +833,7 @@ try:
     # User code should go above this comment.                                  #
     #--------------------------------------------------------------------------#
 except:
+    '''
     rpErrorHandler.RunError()
+    '''
+    raise
