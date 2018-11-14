@@ -19,6 +19,7 @@ class PhotoCropper(Tkinter.Frame):
 
         apply(Tkinter.Frame.__init__,(self,Master),kw)
         self.bind('<Configure>',self.on_PhotoCropper_Config)
+        self.textStatus = Tkinter.StringVar()
         self.frameFiles = Tkinter.Frame(self)
         self.frameFiles.pack(anchor='nw',fill='y',side='left')
         self.sbFiles = Tkinter.Scrollbar(self.frameFiles)
@@ -89,9 +90,9 @@ class PhotoCropper(Tkinter.Frame):
         self.quitButton.bind('<ButtonRelease-1>',self.on_quitButton_ButRel_1)
         self.frmStatus = Tkinter.Frame(self.frameMain)
         self.frmStatus.pack(anchor='nw',fill='y',side='top')
-        self._Label1 = Tkinter.Label(self.frmStatus,relief='sunken'
-            ,text='This is label')
-        self._Label1.pack(anchor='sw',expand='yes',fill='y',side='top')
+        self.lblStatus = Tkinter.Label(self.frmStatus,relief='sunken'
+            ,text='This is label',textvariable=self.textStatus)
+        self.lblStatus.pack(anchor='sw',expand='yes',fill='y',side='top')
         #
         #Your code here
         #
@@ -127,58 +128,59 @@ class PhotoCropper(Tkinter.Frame):
 
 
     def canvas_ArrowDown(self, event=None):
-        # Moves crop rectangle one pixel DOWN
+        # MOVES crop rectangle ONE pixel DOWN
         self.move_rect(self.cropIndex, 0, 1)
 
     def canvas_ArrowDown_Shift(self,Event=None):
-        # Moves crop rectangle AMOUNT OF pixels DOWN
+        # MOVES crop rectangle AMOUNT OF pixels DOWN
         self.move_rect(self.cropIndex, 0, int(self.config['move-step']))
 
     def canvas_ArrowLeft(self, event=None):
-        # Moves crop rectangle one pixel LEFT
+        # MOVES crop rectangle ONE pixel LEFT
         self.move_rect(self.cropIndex, -1, 0)
 
     def canvas_ArrowLeft_Shift(self, event=None):
-        # Moves crop rectangle AMOUNT OF pixels LEFT
+        # MOVES crop rectangle AMOUNT OF pixels LEFT
         self.move_rect(self.cropIndex, -int(self.config['move-step']), 0)
 
     def canvas_ArrowRight(self, event=None):
-        # Moves crop rectangle one pixel RIGHT
+        # MOVES crop rectangle ONE pixel RIGHT
         self.move_rect(self.cropIndex, 1, 0)
 
     def canvas_ArrowRight_Shift(self, event=None):
-        # Moves crop rectangle AMOUNT OF pixels RIGHT
+        # MOVES crop rectangle AMOUNT OF pixels RIGHT
         self.move_rect(self.cropIndex, int(self.config['move-step']), 0)
 
     def canvas_ArrowUp(self, event=None):
-        # Moves crop rectangle one pixel UP
+        # MOVES crop rectangle ONE pixel UP
         self.move_rect(self.cropIndex, 0, -1)
 
     def canvas_ArrowUp_Shift(self, event=None):
-        # Moves crop rectangle AMOUNT OF pixels UP
+        # MOVES crop rectangle AMOUNT OF pixels UP
         self.move_rect(self.cropIndex, 0, -int(self.config['move-step']))
 
     def canvas_KP_Add(self,Event=None):
-        pass
+        # Enlarges rectangle for AMOUNT OF pixels
+        self.resize_rect(self.cropIndex, int(self.config['resize-step']), int(self.config['resize-step']))
 
     def canvas_KP_ArrowDown(self, event=None):
-        # Moves crop rectangle one pixel DOWN
+        # MOVES crop rectangle ONE pixel DOWN
         self.move_rect(self.cropIndex, 0, 1)
 
     def canvas_KP_ArrowLeft(self, event=None):
-        # Moves crop rectangle one pixel LEFT
+        # MOVES crop rectangle ONE pixel LEFT
         self.move_rect(self.cropIndex, -1, 0)
 
     def canvas_KP_ArrowRight(self, event=None):
-        # Moves crop rectangle one pixel RIGHT
+        # MOVES crop rectangle ONE pixel RIGHT
         self.move_rect(self.cropIndex, 1, 0)
 
     def canvas_KP_ArrowUp(self, event=None):
-        # Moves crop rectangle one pixel UP
+        # MOVES crop rectangle ONE pixel UP
         self.move_rect(self.cropIndex, 0, -1)
 
     def canvas_KP_Enter(self,Event=None):
-        # Crops selected areas
+        # CROPS selected areas
         self.start_cropping()
 
     def canvas_KP_PageDown(self, event=None):
@@ -190,7 +192,8 @@ class PhotoCropper(Tkinter.Frame):
         self.pressPage(self.PAGE_UP)
 
     def canvas_KP_Subtract(self,Event=None):
-        pass
+        # Reduces rectangle by AMOUNT OF pixels
+        self.resize_rect(self.cropIndex, -int(self.config['resize-step']), -int(self.config['resize-step']))
 
     def canvas_PageDown(self, event=None):
         # Moves file selection in listbox one DOWN
@@ -201,11 +204,11 @@ class PhotoCropper(Tkinter.Frame):
         self.pressPage(self.PAGE_UP)
 
     def canvas_Return(self,Event=None):
-        # Crops selected areas
+        # CROPS selected areas
         self.start_cropping()
 
     def canvas_SPACE(self, event=None):
-        # Crops selected areas
+        # CROPS selected areas
         self.start_cropping()
 
     def canvas_mouse1_callback(self, event=None):
@@ -234,7 +237,7 @@ class PhotoCropper(Tkinter.Frame):
         self._after_id = self.after(1200, self.draw_after_resize)
 
     def on_btnSettings_ButRel_1(self, event=None):
-        pass
+        tkMessageBox.showinfo("Information", "Not yet implemented.", parent=self)
 
     def on_lbFiles_mouseClick_1(self, event=None):
         self.lbIndex = self.lbFiles.curselection()[0]
@@ -262,7 +265,12 @@ class PhotoCropper(Tkinter.Frame):
             self.redraw_rect()
 
     def resize_rect(self, index, xstep, ystep):
-        pass
+        if len(self.crop_rects) == index + 1:
+            cr = self.crop_rects[index]
+            self.canvas.delete(self.canvas_rects[index])
+            self.canvas_rects.pop(index)
+            self.crop_rects[index] = cr.resize_rect(xstep, ystep)
+            self.redraw_rect()
         
     def pressPage(self, direction=0):
         index = self.lbFiles.curselection()[0] + direction
@@ -405,6 +413,7 @@ class PhotoCropper(Tkinter.Frame):
 
     def loadimage(self):
         self.image = Image.open(self.filename)
+        self.textStatus.set(self.lbFiles.get(tk.ACTIVE))
         self.image_rect = Rect(self.image.size)
         self.image_rect.set_thumboffset(int(self.config['thumb-offset']))
         self.w = self.image_rect.w
@@ -430,11 +439,14 @@ class PhotoCropper(Tkinter.Frame):
 
     def start_cropping(self):
         cropcount = 0
+        status = "{0} cropped: ".format(self.lbFiles.get(tk.ACTIVE))
         for croparea in self.crop_rects:
             cropcount += 1
             filename = self.newfilename(cropcount)
             _, tail = os.path.split(filename) # Remove input directory
             self.crop(croparea, tail)
+            status += "{0}:{1} ".format(cropcount, croparea)
+        self.textStatus.set(status.strip())
 
     def crop(self, croparea, filename):
         ca = (croparea.left, croparea.top, croparea.right, croparea.bottom)
@@ -547,7 +559,6 @@ class Rect(object):
 
     def _update_dims(self):
         """added to provide w and h dimensions."""
-
         self.w = self.right - self.left
         self.h = self.bottom - self.top
 
@@ -573,6 +584,21 @@ class Rect(object):
         r._update_dims()
         return r
 
+    # Rezire rectangle by certain amount on X- and Y- axis
+    def resize_rect(self, x0, y0):
+        r = Rect()
+        r.top = self.top
+        r.left = self.left
+        r.bottom = int(self.bottom + y0)
+        r.right = int(self.right + x0)
+        # Make sure rectangle does not disappear!
+        if r.bottom - r.top < 10:
+            r.bottom = self.bottom
+        if r.right - r.left < 10:
+            r.right = self.right
+        r._update_dims()
+        return r
+        
     def rescale_rect(self, scale, x0, y0):
         x_scale = scale[0]
         y_scale = scale[1]
@@ -634,7 +660,7 @@ class ScanConfig(object):
         
         if configFile is None:
             # Create default configuration in OS-independent "home" directory
-            configPath = os.path.join(os.path.expanduser('~'), '.config', self.__class__.__name__.lower())
+            configPath = os.path.join(os.path.expanduser('~'), '.config', appName.lower())
             if not os.path.exists(configPath):
                 os.makedirs(configPath)
             self.configFile = os.path.join(configPath, 'config.ini')
@@ -687,7 +713,10 @@ class Preferences(Tkinter.Frame):
         #
 
         apply(Tkinter.Frame.__init__,(self,Master),kw)
-
+        self._Frame2 = Tkinter.Frame(self)
+        self._Frame2.pack(side='top')
+        self._Frame1 = Tkinter.Frame(self)
+        self._Frame1.pack(side='top')
         #
         #Your code here
         #
@@ -721,6 +750,7 @@ try:
     #Put lines to import other modules of this project here
     import argparse    
     import tkFileDialog
+    import tkMessageBox
     import os
     import re
     try:
