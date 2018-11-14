@@ -5,36 +5,10 @@ import rpErrorHandler
 import Tkinter
 #------------------------------------------------------------------------------#
 #                                                                              #
-#                                 Preferences                                  #
+#                                 PhotoCropper                                 #
 #                                                                              #
 #------------------------------------------------------------------------------#
-class Preferences(Tkinter.Frame):
-    def __init__(self,Master=None,*pos,**kw):
-        #
-        #Your code here
-        #
-
-        apply(Tkinter.Frame.__init__,(self,Master),kw)
-
-        #
-        #Your code here
-        #
-    #
-    #Start of event handler methods
-    #
-
-    #
-    #Start of non-Rapyd user code
-    #
-
-
-pass #---end-of-form---
-#------------------------------------------------------------------------------#
-#                                                                              #
-#                                 ScanCropper                                  #
-#                                                                              #
-#------------------------------------------------------------------------------#
-class ScanCropper(Tkinter.Frame):
+class PhotoCropper(Tkinter.Frame):
     def __init__(self,Master=None,*pos,**kw):
         kw['borderwidth'] = '5'
         kw['height'] = '1'
@@ -44,7 +18,7 @@ class ScanCropper(Tkinter.Frame):
         #
 
         apply(Tkinter.Frame.__init__,(self,Master),kw)
-        self.bind('<Configure>',self.on_ScanCropper_Config)
+        self.bind('<Configure>',self.on_PhotoCropper_Config)
         self.frameFiles = Tkinter.Frame(self)
         self.frameFiles.pack(anchor='nw',fill='y',side='left')
         self.sbFiles = Tkinter.Scrollbar(self.frameFiles)
@@ -65,12 +39,14 @@ class ScanCropper(Tkinter.Frame):
         self.canvas.bind('<ButtonRelease-1>',self.canvas_mouseup1_callback)
         self.canvas.bind('<KeyRelease-Down>',self.canvas_ArrowDown)
         self.canvas.bind('<Shift-KeyRelease-Down>',self.canvas_ArrowDown_Shift)
+        self.canvas.bind('<KeyRelease-KP_Add>',self.canvas_KP_Add)
         self.canvas.bind('<KeyRelease-KP_Down>',self.canvas_KP_ArrowDown)
         self.canvas.bind('<KeyRelease-KP_Enter>',self.canvas_KP_Enter)
         self.canvas.bind('<KeyRelease-KP_Left>',self.canvas_KP_ArrowLeft)
         self.canvas.bind('<KeyRelease-KP_Next>',self.canvas_KP_PageDown)
         self.canvas.bind('<KeyRelease-KP_Prior>',self.canvas_KP_PageUp)
         self.canvas.bind('<KeyRelease-KP_Right>',self.canvas_KP_ArrowRight)
+        self.canvas.bind('<KeyRelease-KP_Subtract>',self.canvas_KP_Subtract)
         self.canvas.bind('<KeyRelease-KP_Up>',self.canvas_KP_ArrowUp)
         self.canvas.bind('<KeyRelease-Left>',self.canvas_ArrowLeft)
         self.canvas.bind('<Shift-KeyRelease-Left>',self.canvas_ArrowLeft_Shift)
@@ -86,13 +62,9 @@ class ScanCropper(Tkinter.Frame):
         self.frameButtons = Tkinter.Frame(self.frameMain,borderwidth='1'
             ,height='1')
         self.frameButtons.pack(anchor='nw',fill='x',side='top')
-        self.btnInputDir = Tkinter.Button(self.frameButtons,text='Input ...')
-        self.btnInputDir.pack(anchor='sw',side='left')
-        self.btnInputDir.bind('<ButtonRelease-1>',self.on_btnInputDir_ButRel_1)
-        self.btnOutputDir = Tkinter.Button(self.frameButtons,text='Output ...')
-        self.btnOutputDir.pack(anchor='sw',side='left')
-        self.btnOutputDir.bind('<ButtonRelease-1>' \
-            ,self.on_btnOutputDir_ButRel_1)
+        self.btnSettings = Tkinter.Button(self.frameButtons,text='Settings ...')
+        self.btnSettings.pack(anchor='sw',expand='yes',fill='x',side='left')
+        self.btnSettings.bind('<ButtonRelease-1>',self.on_btnSettings_ButRel_1)
         self.resetButton = Tkinter.Button(self.frameButtons
             ,activebackground='#F00',command=self.reset,text='Reset')
         self.resetButton.pack(anchor='sw',expand='yes',fill='x',side='left')
@@ -130,8 +102,7 @@ class ScanCropper(Tkinter.Frame):
         self.unzoomButton_ttp = CreateToolTip(self.unzoomButton, "Unzoom, view all image")
         self.plusButton_ttp = CreateToolTip(self.plusButton, "Plus box, extent rectangle")
         self.goButton_ttp = CreateToolTip(self.goButton, "Go, begin cropping")
-        self.btnInputDir_ttp = CreateToolTip(self.btnInputDir, "Select input directory")
-        self.bthOutputDir_ttp = CreateToolTip(self.btnOutputDir, "Select output directory")
+        self.btnInputDirSettings_ttp = CreateToolTip(self.btnSettings, "Settings")
         self.croprect_start = None
         self.croprect_end = None
         self.crop_count = 0
@@ -161,7 +132,7 @@ class ScanCropper(Tkinter.Frame):
 
     def canvas_ArrowDown_Shift(self,Event=None):
         # Moves crop rectangle AMOUNT OF pixels DOWN
-        self.move_rect(self.cropIndex, 0, int(self.config['movestep']))
+        self.move_rect(self.cropIndex, 0, int(self.config['move-step']))
 
     def canvas_ArrowLeft(self, event=None):
         # Moves crop rectangle one pixel LEFT
@@ -169,7 +140,7 @@ class ScanCropper(Tkinter.Frame):
 
     def canvas_ArrowLeft_Shift(self, event=None):
         # Moves crop rectangle AMOUNT OF pixels LEFT
-        self.move_rect(self.cropIndex, -int(self.config['movestep']), 0)
+        self.move_rect(self.cropIndex, -int(self.config['move-step']), 0)
 
     def canvas_ArrowRight(self, event=None):
         # Moves crop rectangle one pixel RIGHT
@@ -177,7 +148,7 @@ class ScanCropper(Tkinter.Frame):
 
     def canvas_ArrowRight_Shift(self, event=None):
         # Moves crop rectangle AMOUNT OF pixels RIGHT
-        self.move_rect(self.cropIndex, int(self.config['movestep']), 0)
+        self.move_rect(self.cropIndex, int(self.config['move-step']), 0)
 
     def canvas_ArrowUp(self, event=None):
         # Moves crop rectangle one pixel UP
@@ -185,7 +156,10 @@ class ScanCropper(Tkinter.Frame):
 
     def canvas_ArrowUp_Shift(self, event=None):
         # Moves crop rectangle AMOUNT OF pixels UP
-        self.move_rect(self.cropIndex, 0, -int(self.config['movestep']))
+        self.move_rect(self.cropIndex, 0, -int(self.config['move-step']))
+
+    def canvas_KP_Add(self,Event=None):
+        pass
 
     def canvas_KP_ArrowDown(self, event=None):
         # Moves crop rectangle one pixel DOWN
@@ -214,6 +188,9 @@ class ScanCropper(Tkinter.Frame):
     def canvas_KP_PageUp(self, event=None):
         # Moves file selection in listbox one up
         self.pressPage(self.PAGE_UP)
+
+    def canvas_KP_Subtract(self,Event=None):
+        pass
 
     def canvas_PageDown(self, event=None):
         # Moves file selection in listbox one DOWN
@@ -251,15 +228,12 @@ class ScanCropper(Tkinter.Frame):
         self.canvas.delete(self.current_rect)
         self.current_rect = None
 
-    def on_ScanCropper_Config(self, event=None):
+    def on_PhotoCropper_Config(self, event=None):
         if self._after_id:
             self.after_cancel(self._after_id)
         self._after_id = self.after(1200, self.draw_after_resize)
 
-    def on_btnInputDir_ButRel_1(self, event=None):
-        pass
-
-    def on_btnOutputDir_ButRel_1(self, event=None):
+    def on_btnSettings_ButRel_1(self, event=None):
         pass
 
     def on_lbFiles_mouseClick_1(self, event=None):
@@ -287,6 +261,9 @@ class ScanCropper(Tkinter.Frame):
             self.crop_rects[index] = cr.move_rect(xstep, ystep)
             self.redraw_rect()
 
+    def resize_rect(self, index, xstep, ystep):
+        pass
+        
     def pressPage(self, direction=0):
         index = self.lbFiles.curselection()[0] + direction
         self.lbFiles.selection_clear(0, tk.END)
@@ -318,7 +295,7 @@ class ScanCropper(Tkinter.Frame):
        
     def set_crop_area(self):
         r = Rect(self.croprect_start, self.croprect_end)
-        r.set_thumboffset(int(self.config['thumboffset']))
+        r.set_thumboffset(int(self.config['thumb-offset']))
         
         # adjust dimensions
         r.clip_to(self.image_thumb_rect)
@@ -339,7 +316,7 @@ class ScanCropper(Tkinter.Frame):
             self.image_thumb = self.image.crop(za)
             self.image_thumb.thumbnail(thumbsize)
             self.image_thumb_rect = Rect(self.image_thumb.size)
-            self.image_thumb_rect.set_thumboffset(int(self.config['thumboffset']))
+            self.image_thumb_rect.set_thumboffset(int(self.config['thumb-offset']))
             self.displayimage()
             x_scale = float(ra.w) / self.image_thumb_rect.w
             y_scale = float(ra.h) / self.image_thumb_rect.h
@@ -367,7 +344,7 @@ class ScanCropper(Tkinter.Frame):
         self.image_thumb = self.image.copy()
         self.image_thumb.thumbnail(thumbsize)
         self.image_thumb_rect = Rect(self.image_thumb.size)
-        self.image_thumb_rect.set_thumboffset(int(self.config['thumboffset']))
+        self.image_thumb_rect.set_thumboffset(int(self.config['thumb-offset']))
         self.displayimage()
         x_scale = float(self.image_rect.w) / self.image_thumb_rect.w
         y_scale = float(self.image_rect.h) / self.image_thumb_rect.h
@@ -421,26 +398,26 @@ class ScanCropper(Tkinter.Frame):
         self.canvas.delete("all") # Remove remnants of previous crop area
         
         self.canvas.create_image(
-            int(self.config['thumboffset']),
-            int(self.config['thumboffset']),
+            int(self.config['thumb-offset']),
+            int(self.config['thumb-offset']),
             anchor=tk.NW,
             image=self.photoimage)
 
     def loadimage(self):
         self.image = Image.open(self.filename)
         self.image_rect = Rect(self.image.size)
-        self.image_rect.set_thumboffset(int(self.config['thumboffset']))
+        self.image_rect.set_thumboffset(int(self.config['thumb-offset']))
         self.w = self.image_rect.w
         self.h = self.image_rect.h
         # TODO: needed? borderwidth = self.canvas.config()['borderwidth'][4]
         
         self.image_thumb = self.image.copy()
         self.image_thumb.thumbnail(
-            [ self.canvas.winfo_width() - int(self.config['thumboffset']),
-              self.canvas.winfo_height() - int(self.config['thumboffset']) ]
+            [ self.canvas.winfo_width() - int(self.config['thumb-offset']),
+              self.canvas.winfo_height() - int(self.config['thumb-offset']) ]
         )
         self.image_thumb_rect = Rect(self.image_thumb.size)
-        self.image_thumb_rect.set_thumboffset(int(self.config['thumboffset']))
+        self.image_thumb_rect.set_thumboffset(int(self.config['thumb-offset']))
 
         self.displayimage()
         x_scale = float(self.image_rect.w) / self.image_thumb_rect.w
@@ -455,14 +432,13 @@ class ScanCropper(Tkinter.Frame):
         cropcount = 0
         for croparea in self.crop_rects:
             cropcount += 1
-            f = self.newfilename(cropcount)
-            print f, croparea
-            self.crop(croparea, f)
+            filename = self.newfilename(cropcount)
+            _, tail = os.path.split(filename) # Remove input directory
+            self.crop(croparea, tail)
 
     def crop(self, croparea, filename):
         ca = (croparea.left, croparea.top, croparea.right, croparea.bottom)
         newimg = self.image.crop(ca)
-        print(self.config['output-directory'])
         imagePath = os.path.join(self.config['output-directory'], filename)
         newimg.save(imagePath)
         
@@ -652,8 +628,8 @@ class Rect(object):
 # Class that handles configuration
 class ScanConfig(object):
 
-    def __init__(self, configFile=None):
-        self.section = self.__class__.__name__.upper()
+    def __init__(self, configFile=None, appName='PhotoCropper'):
+        self.section = appName.upper()
         self.get_default_config()
         
         if configFile is None:
@@ -678,24 +654,18 @@ class ScanConfig(object):
     # Gets default configuration
     def get_default_config(self):
         return {
-            'geometry': '1024x768+10+10', # Position and size of main window
-            'input-directory': os.path.expanduser('~'), # Directory with pictures to process
-            'output-directory': os.path.expanduser('~'), # Directory to write resulting pictures into
-            'image-extensions': 'tif tiff jpg jpeg gif png', # Extensions of files considered to be pictures
-            'thumboffset': '4', # Thumbnail offset
-            'stipple': 'gray12', # Stipple pattern
-            'movestep' :'10', # Amount of pixels to move rectangle in all directions
-            'resizestep': '10' # Amount of pixels to resize rectangle
+            'geometry'         : '1024x768+10+10', # Position and size of main window
+            'input-directory'  : os.path.expanduser('~'), # Directory with pictures to process
+            'output-directory' : os.path.expanduser('~'), # Directory to write resulting pictures into
+            'image-extensions' : 'tif tiff jpg jpeg gif png', # Extensions of files considered to be pictures
+            'thumb-offset'     : '4', # Thumbnail offset
+            'stipple'          : 'gray12', # Stipple pattern
+            'move-step'        : '10', # Amount of pixels to move rectangle in all directions
+            'resize-step'      : '10' # Amount of pixels to resize rectangle
         }
 
     def __getitem__(self, key):
-        try:
-            return self.config.get(self.section, key)
-        except confpars.NoOptionError:
-            try:
-                return self.default_config.get(self.section, key)
-            except confpars.NoOptionError:
-                return None
+        return self.config.get(self.section, key)
 
     def __setitem__(self, key, value):
         self.config.set(self.section, key, value)
@@ -703,6 +673,31 @@ class ScanConfig(object):
     def save(self):
         with open(self.configFile, 'wb') as cf:
             self.config.write(cf)
+
+pass #---end-of-form---
+#------------------------------------------------------------------------------#
+#                                                                              #
+#                                 Preferences                                  #
+#                                                                              #
+#------------------------------------------------------------------------------#
+class Preferences(Tkinter.Frame):
+    def __init__(self,Master=None,*pos,**kw):
+        #
+        #Your code here
+        #
+
+        apply(Tkinter.Frame.__init__,(self,Master),kw)
+
+        #
+        #Your code here
+        #
+    #
+    #Start of event handler methods
+    #
+
+    #
+    #Start of non-Rapyd user code
+    #
 
 
 pass #---end-of-form---
@@ -745,19 +740,19 @@ try:
         parser.add_argument('-d', '--debug', default=0, help='Debug level')
         args = parser.parse_args()
 
-        # Load configuration
-        conf = ScanConfig(args.configFile)
 
         Root = Tkinter.Tk()
         Tkinter.CallWrapper = rpErrorHandler.CallWrapper
-        App = ScanCropper(Root)
+        App = PhotoCropper(Root)
         App.pack(expand='yes',fill='both')
 
+        # Load configuration
+        conf = ScanConfig(args.configFile, App.__class__.__name__)
         # Set window
         Root.geometry(conf['geometry'])
         # Allow closing windows by clicking "X"
         Root.protocol("WM_DELETE_WINDOW", window_close)
-        Root.title('Scan Cropper')
+        Root.title('Photo Cropper')
         App.config = conf
         App.load_image_list()
         Root.mainloop()
