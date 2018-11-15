@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 '''
@@ -23,11 +23,11 @@ import os
 import re
 import sys
 
-import ConfigParser as confpars
-import Tkinter, tkMessageBox
+import configparser as confpars
+import tkinter, tkinter.messagebox
 from PIL import Image, ImageTk
     
-class PhotoCropper(Tkinter.Frame):
+class PhotoCropper(tkinter.Frame):
     def __init__(self, Master=None, *pos, **kw):
         kw['borderwidth'] = '5'
         kw['height'] = '1'
@@ -36,22 +36,22 @@ class PhotoCropper(Tkinter.Frame):
         #Your code here
         #
 
-        apply(Tkinter.Frame.__init__,(self,Master),kw)
+        tkinter.Frame.__init__(*(self,Master), **kw)
         self.bind('<Configure>',self.on_PhotoCropper_Config)
-        self.textStatus = Tkinter.StringVar()
-        self.frameFiles = Tkinter.Frame(self)
+        self.textStatus = tkinter.StringVar()
+        self.frameFiles = tkinter.Frame(self)
         self.frameFiles.pack(anchor='nw',fill='y',side='left')
-        self.sbFiles = Tkinter.Scrollbar(self.frameFiles)
+        self.sbFiles = tkinter.Scrollbar(self.frameFiles)
         self.sbFiles.pack(anchor='nw',fill='y',side='right')
-        self.lbFiles = Tkinter.Listbox(self.frameFiles,takefocus=1)
+        self.lbFiles = tkinter.Listbox(self.frameFiles,takefocus=1)
         self.lbFiles.pack(anchor='nw',fill='y',side='right')
         self.lbFiles.bind('<ButtonRelease-1>',self.on_lbFiles_mouseClick_1)
-        self.frameMain = Tkinter.Frame(self,borderwidth='1')
+        self.frameMain = tkinter.Frame(self,borderwidth='1')
         self.frameMain.pack(expand='yes',fill='both',side='left')
-        self.framePicture = Tkinter.Frame(self.frameMain,borderwidth='1'
+        self.framePicture = tkinter.Frame(self.frameMain,borderwidth='1'
             ,relief='raised')
         self.framePicture.pack(anchor='nw',expand='yes',fill='both',side='top')
-        self.canvas = Tkinter.Canvas(self.framePicture,borderwidth='1'
+        self.canvas = tkinter.Canvas(self.framePicture,borderwidth='1'
             ,takefocus=1)
         self.canvas.pack(anchor='nw',expand='yes',fill='both',side='bottom')
         self.canvas.bind('<B1-Motion>',self.canvas_mouseb1move_callback)
@@ -86,37 +86,37 @@ class PhotoCropper(Tkinter.Frame):
         self.canvas.bind('<Control-KeyRelease-Up>',self.canvas_ArrowUp_Control)
         self.canvas.bind('<Shift-KeyRelease-Up>',self.canvas_ArrowUp_Shift)
         self.canvas.bind('<KeyRelease-space>',self.canvas_SPACE)
-        self.frameButtons = Tkinter.Frame(self.frameMain,borderwidth='1'
+        self.frameButtons = tkinter.Frame(self.frameMain,borderwidth='1'
             ,height='1')
         self.frameButtons.pack(anchor='nw',fill='x',side='top')
-        self.btnSettings = Tkinter.Button(self.frameButtons,text='Settings ...')
+        self.btnSettings = tkinter.Button(self.frameButtons,text='Settings ...')
         self.btnSettings.pack(anchor='sw',expand='yes',fill='x',side='left')
         self.btnSettings.bind('<ButtonRelease-1>',self.on_btnSettings_ButRel_1)
-        self.resetButton = Tkinter.Button(self.frameButtons
+        self.resetButton = tkinter.Button(self.frameButtons
             ,activebackground='#F00',command=self.reset,text='Reset')
         self.resetButton.pack(anchor='sw',expand='yes',fill='x',side='left')
-        self.undoButton = Tkinter.Button(self.frameButtons
+        self.undoButton = tkinter.Button(self.frameButtons
             ,activebackground='#FF0',command=self.undo_last,text='Undo')
         self.undoButton.pack(anchor='sw',expand='yes',fill='x',side='left')
-        self.zoomButton = Tkinter.Checkbutton(self.frameButtons
+        self.zoomButton = tkinter.Checkbutton(self.frameButtons
             ,command=self.zoom_mode,text='Zoom')
         self.zoomButton.pack(anchor='sw',expand='yes',fill='x',side='left')
-        self.unzoomButton = Tkinter.Button(self.frameButtons
+        self.unzoomButton = tkinter.Button(self.frameButtons
             ,activebackground='#00F',command=self.unzoom_image,text='<-|->')
         self.unzoomButton.pack(anchor='sw',expand='yes',fill='x',side='left')
-        self.plusButton = Tkinter.Button(self.frameButtons,command=self.plus_box
+        self.plusButton = tkinter.Button(self.frameButtons,command=self.plus_box
             ,text='+')
         self.plusButton.pack(anchor='sw',expand='yes',fill='x',side='left')
-        self.goButton = Tkinter.Button(self.frameButtons,activebackground='#0F0'
+        self.goButton = tkinter.Button(self.frameButtons,activebackground='#0F0'
             ,command=self.start_cropping,text='Crops')
         self.goButton.pack(anchor='sw',expand='yes',fill='x',side='left')
-        self.quitButton = Tkinter.Button(self.frameButtons
+        self.quitButton = tkinter.Button(self.frameButtons
             ,activebackground='#F00',command=self.quit,text='Quit')
         self.quitButton.pack(anchor='sw',expand='yes',fill='x',side='left')
         self.quitButton.bind('<ButtonRelease-1>',self.on_quitButton_ButRel_1)
-        self.frmStatus = Tkinter.Frame(self.frameMain)
+        self.frmStatus = tkinter.Frame(self.frameMain)
         self.frmStatus.pack(anchor='nw',fill='y',side='top')
-        self.lblStatus = Tkinter.Label(self.frmStatus,relief='sunken'
+        self.lblStatus = tkinter.Label(self.frmStatus,relief='sunken'
             ,text='This is label',textvariable=self.textStatus)
         self.lblStatus.pack(anchor='sw',expand='yes',fill='y',side='top')
         #
@@ -279,11 +279,11 @@ class PhotoCropper(Tkinter.Frame):
         self._after_id = self.after(1200, self.draw_after_resize)
 
     def on_btnSettings_ButRel_1(self, event=None):
-        tkMessageBox.showinfo("Information", "Not yet implemented.", parent=self)
+        tkinter.messagebox.showinfo("Information", "Not yet implemented.", parent=self)
 
     def on_lbFiles_mouseClick_1(self, event=None):
         self.lbIndex = self.lbFiles.curselection()[0]
-        self.load_lbFiles_image(self.lbFiles.get(Tkinter.ACTIVE))
+        self.load_lbFiles_image(self.lbFiles.get(tkinter.ACTIVE))
 
     def on_quitButton_ButRel_1(self, event=None):
         conf['geometry'] = self.winfo_toplevel().geometry()
@@ -316,7 +316,7 @@ class PhotoCropper(Tkinter.Frame):
         
     def pressPage(self, direction=0):
         index = self.lbFiles.curselection()[0] + direction
-        self.lbFiles.selection_clear(0, Tkinter.END)
+        self.lbFiles.selection_clear(0, tkinter.END)
         self.lbSelect(index)
 
     # Programmatically select image in a listbox
@@ -328,7 +328,7 @@ class PhotoCropper(Tkinter.Frame):
         self.lbFiles.select_set(index)
         self.lbFiles.activate(index)
         if index != self.lbIndex:
-            self.load_lbFiles_image(self.lbFiles.get(Tkinter.ACTIVE))
+            self.load_lbFiles_image(self.lbFiles.get(tkinter.ACTIVE))
             self.lbIndex = index
         
     def draw_after_resize(self):
@@ -359,7 +359,7 @@ class PhotoCropper(Tkinter.Frame):
         ra = ra.move_rect(self.x0, self.y0)
         ra = ra.valid_rect(self.w, self.h)
         if self.zoommode:
-            self.canvas.delete(Tkinter.ALL)
+            self.canvas.delete(tkinter.ALL)
             self.x0 = ra.left
             self.y0 = ra.top
             za = (ra.left, ra.top, ra.right, ra.bottom)
@@ -386,7 +386,7 @@ class PhotoCropper(Tkinter.Frame):
             self.zoommode = True
 
     def unzoom_image(self):
-        self.canvas.delete(Tkinter.ALL)
+        self.canvas.delete(tkinter.ALL)
         self.zoommode = False
         self.zoomButton.deselect()
         self.x0 = 0
@@ -403,7 +403,7 @@ class PhotoCropper(Tkinter.Frame):
 
     def plus_box(self):
         if self.n > 1:
-            self.canvas.delete(Tkinter.ALL)
+            self.canvas.delete(tkinter.ALL)
             if self.crop_rects:
                 ra = self.crop_rects[self.n - 1]
                 self.crop_rects.pop()
@@ -435,7 +435,7 @@ class PhotoCropper(Tkinter.Frame):
         self.canvas_rects.append(cr)
 
     def reset(self):
-        self.canvas.delete(Tkinter.ALL)
+        self.canvas.delete(tkinter.ALL)
         self.zoommode = False
         self.zoomButton.deselect()
         self.canvas_rects = []
@@ -450,12 +450,12 @@ class PhotoCropper(Tkinter.Frame):
         self.canvas.create_image(
             int(self.config['thumb-offset']),
             int(self.config['thumb-offset']),
-            anchor=Tkinter.NW,
+            anchor=tkinter.NW,
             image=self.photoimage)
 
     def loadimage(self):
         self.image = Image.open(self.filename)
-        self.textStatus.set(self.lbFiles.get(Tkinter.ACTIVE))
+        self.textStatus.set(self.lbFiles.get(tkinter.ACTIVE))
         self.image_rect = Rect(self.image.size)
         self.image_rect.set_thumboffset(int(self.config['thumb-offset']))
         self.w = self.image_rect.w
@@ -481,7 +481,7 @@ class PhotoCropper(Tkinter.Frame):
 
     def start_cropping(self):
         cropcount = 0
-        status = "{0} cropped: ".format(self.lbFiles.get(Tkinter.ACTIVE))
+        status = "{0} cropped: ".format(self.lbFiles.get(tkinter.ACTIVE))
         for croparea in self.crop_rects:
             cropcount += 1
             filename = self.newfilename(cropcount)
@@ -498,17 +498,17 @@ class PhotoCropper(Tkinter.Frame):
         
     def load_image_list(self):
         if self.config is not None:
-            self.lbFiles.delete(0, Tkinter.END)
+            self.lbFiles.delete(0, tkinter.END)
             suffixtuple = tuple(re.split(self.delimiters, self.config['image-extensions']))
             for item in os.listdir(self.config['input-directory']):
                 if os.path.isfile(os.path.join(self.config['input-directory'], item)):
                     if item.lower().endswith(suffixtuple): # The arg can be a tuple of suffixes to look for
-                        self.lbFiles.insert(Tkinter.END, item)
+                        self.lbFiles.insert(tkinter.END, item)
             self.update_idletasks()
             # If there are items in listbox, select the 1st one
             if self.lbFiles.size() > 0:
                 self.lbFiles.select_set(0)
-                self.load_lbFiles_image(self.lbFiles.get(Tkinter.ACTIVE))
+                self.load_lbFiles_image(self.lbFiles.get(tkinter.ACTIVE))
                 self.canvas.focus_set()
 
 
@@ -550,11 +550,11 @@ class CreateToolTip(object):
         x += self.widget.winfo_rootx() + 25
         y += self.widget.winfo_rooty() + 20
         # creates a toplevel window
-        self.tw = Tkinter.Toplevel(self.widget)
+        self.tw = tkinter.Toplevel(self.widget)
         # Leaves only the label and removes the app window
         self.tw.wm_overrideredirect(True)
         self.tw.wm_geometry("+%d+%d" % (x, y))
-        label = Tkinter.Label(self.tw, text=self.text, justify='left',
+        label = tkinter.Label(self.tw, text=self.text, justify='left',
             background="#fef9e7", relief='solid', borderwidth=1,
             wraplength = self.wraplength)
         label.pack(ipadx=1)
@@ -748,16 +748,16 @@ pass #---end-of-form---
 #                                 Preferences                                  #
 #                                                                              #
 #------------------------------------------------------------------------------#
-class Preferences(Tkinter.Frame):
+class Preferences(tkinter.Frame):
     def __init__(self,Master=None,*pos,**kw):
         #
         #Your code here
         #
 
-        apply(Tkinter.Frame.__init__,(self,Master),kw)
-        self._Frame2 = Tkinter.Frame(self)
+        tkinter.Frame.__init__(*(self,Master), **kw)
+        self._Frame2 = tkinter.Frame(self)
         self._Frame2.pack(side='top')
-        self._Frame1 = Tkinter.Frame(self)
+        self._Frame1 = tkinter.Frame(self)
         self._Frame1.pack(side='top')
         #
         #Your code here
@@ -805,7 +805,7 @@ try:
         App.pack(expand='yes',fill='both')
 
         '''
-        Root = Tkinter.Tk()
+        Root = tkinter.Tk()
         App = PhotoCropper(Root)
         App.pack(expand='yes', fill='both')
         # Load configuration
