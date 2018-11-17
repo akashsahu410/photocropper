@@ -43,7 +43,8 @@ class PhotoCropper(Tkinter.Frame):
         self.frameFiles.pack(anchor='nw',fill='y',side='left')
         self.sbFiles = Tkinter.Scrollbar(self.frameFiles)
         self.sbFiles.pack(anchor='nw',fill='y',side='right')
-        self.lbFiles = Tkinter.Listbox(self.frameFiles,takefocus=1)
+        self.lbFiles = Tkinter.Listbox(self.frameFiles,takefocus=1
+            ,yscrollcommand=self.sbFiles.set)
         self.lbFiles.pack(anchor='nw',fill='y',side='right')
         self.lbFiles.bind('<ButtonRelease-1>',self.on_lbFiles_mouseClick_1)
         self.frameMain = Tkinter.Frame(self,borderwidth='1')
@@ -52,7 +53,7 @@ class PhotoCropper(Tkinter.Frame):
             ,relief='raised')
         self.framePicture.pack(anchor='nw',expand='yes',fill='both',side='top')
         self.canvas = Tkinter.Canvas(self.framePicture,borderwidth='1'
-            ,takefocus=1)
+            ,highlightcolor='darkred',highlightthickness='3',takefocus=1)
         self.canvas.pack(anchor='nw',expand='yes',fill='both',side='bottom')
         self.canvas.bind('<B1-Motion>',self.canvas_mouseb1move_callback)
         self.canvas.bind('<Button-1>',self.canvas_mouse1_callback)
@@ -122,6 +123,7 @@ class PhotoCropper(Tkinter.Frame):
         #
         #Your code here
         #
+        self.sbFiles.config(command=self.lbFiles.yview)
         self.quitButton_ttp = CreateToolTip(self.quitButton, "Exit")
         self.resetButton_ttp = CreateToolTip(self.resetButton, "Reset all rectangles")
         self.undoButton_ttp = CreateToolTip(self.undoButton, "Undo last rectangle")
@@ -283,7 +285,8 @@ class PhotoCropper(Tkinter.Frame):
 
     def on_lbFiles_mouseClick_1(self, event=None):
         self.lbIndex = self.lbFiles.curselection()[0]
-        self.load_lbFiles_image(self.lbFiles.get(Tkinter.ACTIVE))
+        print(self.lbIndex)
+        self.load_lbFiles_image(self.lbFiles.get(self.lbIndex))
 
     def on_quitButton_ButRel_1(self, event=None):
         conf['geometry'] = self.winfo_toplevel().geometry()
@@ -318,6 +321,8 @@ class PhotoCropper(Tkinter.Frame):
         index = self.lbFiles.curselection()[0] + direction
         self.lbFiles.selection_clear(0, Tkinter.END)
         self.lbSelect(index)
+        # Move scrollbar in listbox so that it corresponds to selection
+        self.lbFiles.yview_scroll(direction, 'units')
 
     # Programmatically select image in a listbox
     def lbSelect(self, index):
@@ -455,7 +460,7 @@ class PhotoCropper(Tkinter.Frame):
 
     def loadimage(self):
         self.image = Image.open(self.filename)
-        self.textStatus.set(self.lbFiles.get(Tkinter.ACTIVE))
+        self.textStatus.set("{0} {1}".format(os.path.basename(self.filename), self.image.size))
         self.image_rect = Rect(self.image.size)
         self.image_rect.set_thumboffset(int(self.config['thumb-offset']))
         self.w = self.image_rect.w
@@ -500,7 +505,7 @@ class PhotoCropper(Tkinter.Frame):
         if self.config is not None:
             self.lbFiles.delete(0, Tkinter.END)
             suffixtuple = tuple(re.split(self.delimiters, self.config['image-extensions']))
-            for item in os.listdir(self.config['input-directory']):
+            for item in sorted(os.listdir(self.config['input-directory'])):
                 if os.path.isfile(os.path.join(self.config['input-directory'], item)):
                     if item.lower().endswith(suffixtuple): # The arg can be a tuple of suffixes to look for
                         self.lbFiles.insert(Tkinter.END, item)
@@ -795,6 +800,8 @@ try:
         parser = argparse.ArgumentParser(description='Picture cropper')
         parser.add_argument('-c', '--config', '--config-file', dest='configFile', default=None, help='Configuration file path')
         parser.add_argument('-d', '--debug', default=0, help='Debug level')
+        parser.add_argument('-i', '--input-dir', '--input-directory', default=None, help='Input directory with pictures to be cropped')
+        parser.add_argument('-o', '--output-dir', '--output-directory', default=None, help='Output directory for storing cropped pictures')
         args = parser.parse_args()
 
         '''
