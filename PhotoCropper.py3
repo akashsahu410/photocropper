@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 '''
@@ -19,12 +19,14 @@ class PhotoCropper(Tkinter.Frame):
 
 '''
 import argparse
+import logging
 import os
 import re
 import sys
 
 import configparser as confpars
 import tkinter, tkinter.messagebox
+
 from PIL import Image, ImageTk
     
 class PhotoCropper(tkinter.Frame):
@@ -39,51 +41,56 @@ class PhotoCropper(tkinter.Frame):
         tkinter.Frame.__init__(*(self,Master), **kw)
         self.bind('<Configure>',self.on_PhotoCropper_Config)
         self.textStatus = tkinter.StringVar()
-        self.frameFiles = tkinter.Frame(self)
+        self.frameFiles = tkinter.Frame(self,highlightcolor='darkred'
+            ,highlightthickness='3',width='1')
         self.frameFiles.pack(anchor='nw',fill='y',side='left')
         self.sbFiles = tkinter.Scrollbar(self.frameFiles)
         self.sbFiles.pack(anchor='nw',fill='y',side='right')
-        self.lbFiles = tkinter.Listbox(self.frameFiles,takefocus=1)
+        self.lbFiles = tkinter.Listbox(self.frameFiles,takefocus=1
+            ,yscrollcommand=self.sbFiles.set)
         self.lbFiles.pack(anchor='nw',fill='y',side='right')
         self.lbFiles.bind('<ButtonRelease-1>',self.on_lbFiles_mouseClick_1)
-        self.frameMain = tkinter.Frame(self,borderwidth='1')
+        self.lbFiles.bind('<KeyRelease-Down>',self.lbFiles_ArrowDown)
+        self.lbFiles.bind('<KeyRelease-Up>',self.lbFiles_ArrowUp)
+        self.frameMain = tkinter.Frame(self,borderwidth='1',width='1')
         self.frameMain.pack(expand='yes',fill='both',side='left')
         self.framePicture = tkinter.Frame(self.frameMain,borderwidth='1'
             ,relief='raised')
         self.framePicture.pack(anchor='nw',expand='yes',fill='both',side='top')
         self.canvas = tkinter.Canvas(self.framePicture,borderwidth='1'
-            ,takefocus=1)
+            ,highlightcolor='darkred',highlightthickness='3',takefocus=1)
         self.canvas.pack(anchor='nw',expand='yes',fill='both',side='bottom')
         self.canvas.bind('<B1-Motion>',self.canvas_mouseb1move_callback)
         self.canvas.bind('<Button-1>',self.canvas_mouse1_callback)
         self.canvas.bind('<ButtonRelease-1>',self.canvas_mouseup1_callback)
         self.canvas.bind('<KeyRelease-Down>',self.canvas_ArrowDown)
-        self.canvas.bind('<Control-KeyRelease-Down>' \
-            ,self.canvas_ArrowDown_Control)
         self.canvas.bind('<Shift-KeyRelease-Down>',self.canvas_ArrowDown_Shift)
         self.canvas.bind('<KeyRelease-KP_Add>',self.canvas_KP_Add)
-        self.canvas.bind('<KeyRelease-KP_Down>',self.canvas_ArrowDown_KP)
+        self.canvas.bind('<KeyRelease-KP_Down>',self.canvas_KP_ArrowDown)
+        self.canvas.bind('<Control-KeyRelease-KP_Down>' \
+            ,self.canvas_KP_ArrowDown_Control)
         self.canvas.bind('<KeyRelease-KP_Enter>',self.canvas_KP_Enter)
-        self.canvas.bind('<KeyRelease-KP_Left>',self.canvas_ArrowLeft_KP)
+        self.canvas.bind('<KeyRelease-KP_Left>',self.canvas_KP_ArrowLeft)
+        self.canvas.bind('<Control-KeyRelease-KP_Left>' \
+            ,self.canvas_KP_ArrowLeft_Control)
         self.canvas.bind('<KeyRelease-KP_Next>',self.canvas_KP_PageDown)
         self.canvas.bind('<KeyRelease-KP_Prior>',self.canvas_KP_PageUp)
-        self.canvas.bind('<KeyRelease-KP_Right>',self.canvas_ArrowRight_KP)
+        self.canvas.bind('<KeyRelease-KP_Right>',self.canvas_KP_ArrowRight)
+        self.canvas.bind('<Control-KeyRelease-KP_Right>' \
+            ,self.canvas_KP_ArrowRight_Control)
         self.canvas.bind('<KeyRelease-KP_Subtract>',self.canvas_KP_Subtract)
-        self.canvas.bind('<KeyRelease-KP_Up>',self.canvas_ArrowUp_KP)
+        self.canvas.bind('<KeyRelease-KP_Up>',self.canvas_KP_ArrowUp)
+        self.canvas.bind('<Control-KeyRelease-KP_Up>' \
+            ,self.canvas_KP_ArrowUp_Control)
         self.canvas.bind('<KeyRelease-Left>',self.canvas_ArrowLeft)
-        self.canvas.bind('<Control-KeyRelease-Left>' \
-            ,self.canvas_ArrowLeft_Control)
         self.canvas.bind('<Shift-KeyRelease-Left>',self.canvas_ArrowLeft_Shift)
         self.canvas.bind('<KeyRelease-Next>',self.canvas_PageDown)
         self.canvas.bind('<KeyRelease-Prior>',self.canvas_PageUp)
         self.canvas.bind('<KeyRelease-Return>',self.canvas_Return)
         self.canvas.bind('<KeyRelease-Right>',self.canvas_ArrowRight)
-        self.canvas.bind('<Control-KeyRelease-Right>' \
-            ,self.canvas_ArrowRight_Control)
         self.canvas.bind('<Shift-KeyRelease-Right>' \
             ,self.canvas_ArrowRight_Shift)
         self.canvas.bind('<KeyRelease-Up>',self.canvas_ArrowUp)
-        self.canvas.bind('<Control-KeyRelease-Up>',self.canvas_ArrowUp_Control)
         self.canvas.bind('<Shift-KeyRelease-Up>',self.canvas_ArrowUp_Shift)
         self.canvas.bind('<KeyRelease-space>',self.canvas_SPACE)
         self.frameButtons = tkinter.Frame(self.frameMain,borderwidth='1'
@@ -122,6 +129,7 @@ class PhotoCropper(tkinter.Frame):
         #
         #Your code here
         #
+        self.sbFiles.config(command=self.lbFiles.yview)
         self.quitButton_ttp = CreateToolTip(self.quitButton, "Exit")
         self.resetButton_ttp = CreateToolTip(self.resetButton, "Reset all rectangles")
         self.undoButton_ttp = CreateToolTip(self.undoButton, "Undo last rectangle")
@@ -157,104 +165,113 @@ class PhotoCropper(tkinter.Frame):
         # MOVES crop rectangle ONE pixel DOWN
         self.move_rect(self.cropIndex, 0, 1)
 
-    def canvas_ArrowDown_Control(self,Event=None):
-        # INCREASES size of crop rectangle by ONE pixel on Y-axis
-        self.resize_rect(self.cropIndex, 0, 1)
-
-    def canvas_ArrowDown_KP(self, event=None):
-        # MOVES crop rectangle ONE pixel DOWN
-        self.move_rect(self.cropIndex, 0, 1)
-
-    def canvas_ArrowDown_Shift(self,Event=None):
+    def canvas_ArrowDown_Shift(self, event=None):
         # MOVES crop rectangle AMOUNT OF pixels DOWN
-        self.move_rect(self.cropIndex, 0, int(self.config['move-step']))
+        self.move_rect(self.cropIndex, 0, int(self.config['move-resize-step']))
 
     def canvas_ArrowLeft(self, event=None):
         # MOVES crop rectangle ONE pixel LEFT
         self.move_rect(self.cropIndex, -1, 0)
 
-    def canvas_ArrowLeft_Control(self, event=None):
-        # REDUCES size of crop rectangle by ONE pixel on X-axis
-        self.resize_rect(self.cropIndex, -1, 0)
-
-    def canvas_ArrowLeft_KP(self, event=None):
-        # MOVES crop rectangle ONE pixel LEFT
-        self.move_rect(self.cropIndex, -1, 0)
-
     def canvas_ArrowLeft_Shift(self, event=None):
         # MOVES crop rectangle AMOUNT OF pixels LEFT
-        self.move_rect(self.cropIndex, -int(self.config['move-step']), 0)
+        self.move_rect(self.cropIndex, -int(self.config['move-resize-step']), 0)
 
     def canvas_ArrowRight(self, event=None):
         # MOVES crop rectangle ONE pixel RIGHT
         self.move_rect(self.cropIndex, 1, 0)
 
-    def canvas_ArrowRight_Control(self,Event=None):
-        # INCREASES size of crop rectangle by ONE pixel on X-axis
-        self.resize_rect(self.cropIndex, 1, 0)
-
-    def canvas_ArrowRight_KP(self, event=None):
-        # MOVES crop rectangle ONE pixel RIGHT
-        self.move_rect(self.cropIndex, 1, 0)
-
     def canvas_ArrowRight_Shift(self, event=None):
         # MOVES crop rectangle AMOUNT OF pixels RIGHT
-        self.move_rect(self.cropIndex, int(self.config['move-step']), 0)
+        self.move_rect(self.cropIndex, int(self.config['move-resize-step']), 0)
 
     def canvas_ArrowUp(self, event=None):
         # MOVES crop rectangle ONE pixel UP
         self.move_rect(self.cropIndex, 0, -1)
 
-    def canvas_ArrowUp_Control(self, event=None):
-        # REDUCES size of crop rectangle by ONE pixel on Y-axis
-        self.resize_rect(self.cropIndex, 0, -1)
-
-    def canvas_ArrowUp_KP(self, event=None):
-        # MOVES crop rectangle ONE pixel UP
-        self.move_rect(self.cropIndex, 0, -1)
-
     def canvas_ArrowUp_Shift(self, event=None):
         # MOVES crop rectangle AMOUNT OF pixels UP
-        self.move_rect(self.cropIndex, 0, -int(self.config['move-step']))
+        self.move_rect(self.cropIndex, 0, -int(self.config['move-resize-step']))
 
     def canvas_KP_Add(self, event=None):
-        # Enlarges rectangle for AMOUNT OF pixels
-        self.resize_rect(self.cropIndex, int(self.config['resize-step']), int(self.config['resize-step']))
+        # INCREASES size of crop rectangle for AMOUNT OF pixels on both X- and Y-axes
+        log.debug("Canvas keypress numerical keypad PLUS")
+        self.resize_rect(self.cropIndex, int(self.config['move-resize-step']), int(self.config['move-resize-step']))
+
+    def canvas_KP_ArrowDown(self, event=None):
+        # INCREASES size of crop rectangle by ONE pixel on Y axes
+        self.resize_rect(self.cropIndex, 0, 1)
+
+    def canvas_KP_ArrowDown_Control(self, event=None):
+        # INCREASES size of crop rectangle by AMOUNT OF pixels on Y axes
+        self.resize_rect(self.cropIndex, 0, int(self.config['move-resize-step']))
+
+    def canvas_KP_ArrowLeft(self, event=None):
+        # DECREASES size of crop rectangle by ONE pixel on X axes
+        self.resize_rect(self.cropIndex, -1, 0)
+
+    def canvas_KP_ArrowLeft_Control(self, event=None):
+        # DECREASES size of crop rectangle by AMOUNT OF pixels on X axes
+        self.resize_rect(self.cropIndex, -int(self.config['move-resize-step']), 0)
+
+    def canvas_KP_ArrowRight(self, event=None):
+        # INCREASES size of crop rectangle ONE pixel on X axes
+        self.resize_rect(self.cropIndex, 1, 0)
+
+    def canvas_KP_ArrowRight_Control(self, event=None):
+        # INCREASES size of crop rectangle AMOUNT OF pixels on X axes
+        self.resize_rect(self.cropIndex, int(self.config['move-resize-step']), 0)
+
+    def canvas_KP_ArrowUp(self, event=None):
+        # DECREASES size of crop rectangle ONE pixel on Y axes
+        self.resize_rect(self.cropIndex, 0, -1)
+
+    def canvas_KP_ArrowUp_Control(self, event=None):
+        # DECREASES size of crop rectangle AMOUNT OF pixels on Y axes
+        self.resize_rect(self.cropIndex, 0, -int(self.config['move-resize-step']))
 
     def canvas_KP_Enter(self, event=None):
         # CROPS selected areas
+        log.debug("Canvas keypress numerical keypad ENTER")
         self.start_cropping()
 
     def canvas_KP_PageDown(self, event=None):
         # Moves file selection in listbox one down
-        self.pressPage(self.PAGE_DOWN)
+        log.debug("Canvas keypress numerical keypad Page Down")
+        self.pressPage(self.MOVE_DOWN)
 
     def canvas_KP_PageUp(self, event=None):
         # Moves file selection in listbox one up
-        self.pressPage(self.PAGE_UP)
+        self.pressPage(self.MOVE_UP)
 
     def canvas_KP_Subtract(self, event=None):
-        # Reduces rectangle by AMOUNT OF pixels
-        self.resize_rect(self.cropIndex, -int(self.config['resize-step']), -int(self.config['resize-step']))
+        # Reduces rectangle by AMOUNT OF pixels on both X- and Y-axes
+        log.debug("Canvas keypress numerical keypad MINUS")
+        self.resize_rect(self.cropIndex, -int(self.config['move-resize-step']), -int(self.config['move-resize-step']))
 
     def canvas_PageDown(self, event=None):
         # Moves file selection in listbox one DOWN
-        self.pressPage(self.PAGE_DOWN)
+        log.debug("Canvas keypress Page Down")
+        self.pressPage(self.MOVE_DOWN)
 
     def canvas_PageUp(self, event=None):
         # Moves file selection in listbox one UP
-        self.pressPage(self.PAGE_UP)
+        log.debug("Canvas keypress Page Up")
+        self.pressPage(self.MOVE_UP)
 
-    def canvas_Return(self,Event=None):
+    def canvas_Return(self, event=None):
         # CROPS selected areas
+        log.debug("Canvas keypress ENTER")
         self.start_cropping()
 
     def canvas_SPACE(self, event=None):
         # CROPS selected areas
+        log.debug("Canvas keypress SPACE")
         self.start_cropping()
 
     def canvas_mouse1_callback(self, event=None):
         self.croprect_start = (event.x, event.y)
+        log.debug("Crop rectangle START: x={0} y={1}".format(event.x, event.y))
 
     def canvas_mouseb1move_callback(self, event=None):
         if self.current_rect:
@@ -269,9 +286,20 @@ class PhotoCropper(tkinter.Frame):
 
     def canvas_mouseup1_callback(self, event=None):
         self.croprect_end = (event.x, event.y)
+        log.debug("Crop rectangle END: x={0} y={1}".format(event.x, event.y))
         self.set_crop_area()
         self.canvas.delete(self.current_rect)
         self.current_rect = None
+
+    def lbFiles_ArrowDown(self, event=None):
+        # Moves file selection in listbox one DOWN
+        log.debug("Files listbox arrow DOWN")
+        self.pressPage(self.MOVE_DOWN)
+
+    def lbFiles_ArrowUp(self, event=None):
+        # Moves file selection in listbox one UP
+        log.debug("Files listbox arrow UP")
+        self.pressPage(self.MOVE_UP)
 
     def on_PhotoCropper_Config(self, event=None):
         if self._after_id:
@@ -283,19 +311,23 @@ class PhotoCropper(tkinter.Frame):
 
     def on_lbFiles_mouseClick_1(self, event=None):
         self.lbIndex = self.lbFiles.curselection()[0]
-        self.load_lbFiles_image(self.lbFiles.get(tkinter.ACTIVE))
+        log.debug("File listbox selected")
+        self.load_lbFiles_image(self.lbFiles.get(self.lbIndex))
 
     def on_quitButton_ButRel_1(self, event=None):
         conf['geometry'] = self.winfo_toplevel().geometry()
         conf.save()
+        log.debug("Clicked 'Quit' button")
         self.quit()
     #
     #Start of non-Rapyd user code
     #
     
     # Constants for listbox with image file names
-    PAGE_UP = -1
-    PAGE_DOWN = 1
+    MOVE_UP = -1
+    MOVE_DOWN = 1
+    MOVE_RIGHT = 1
+    MOVE_LEFT = -1
     
     # Moves rectangle with "index" by "step" pixels
     def move_rect(self, index, xstep, ystep):
@@ -304,6 +336,7 @@ class PhotoCropper(tkinter.Frame):
             self.canvas.delete(self.canvas_rects[index])
             self.canvas_rects.pop(index)
             self.crop_rects[index] = cr.move_rect(xstep, ystep)
+            log.debug("Crop area moved: index={0} crop={1}".format(index, self.crop_rects[index]))
             self.redraw_rect()
 
     def resize_rect(self, index, xstep, ystep):
@@ -312,12 +345,15 @@ class PhotoCropper(tkinter.Frame):
             self.canvas.delete(self.canvas_rects[index])
             self.canvas_rects.pop(index)
             self.crop_rects[index] = cr.resize_rect(xstep, ystep)
+            log.debug("Crop area resized: index={0} crop={1}".format(index, self.crop_rects[index]))
             self.redraw_rect()
         
     def pressPage(self, direction=0):
         index = self.lbFiles.curselection()[0] + direction
         self.lbFiles.selection_clear(0, tkinter.END)
         self.lbSelect(index)
+        # Move scrollbar in listbox so that it corresponds to selection
+        self.lbFiles.yview_scroll(direction, 'units')
 
     # Programmatically select image in a listbox
     def lbSelect(self, index):
@@ -327,6 +363,7 @@ class PhotoCropper(tkinter.Frame):
             index = self.lbFiles.size()-1  
         self.lbFiles.select_set(index)
         self.lbFiles.activate(index)
+        log.debug("lbSelect: Got index {0}, listbox index {1}".format(index, self.lbIndex))
         if index != self.lbIndex:
             self.load_lbFiles_image(self.lbFiles.get(tkinter.ACTIVE))
             self.lbIndex = index
@@ -384,6 +421,7 @@ class PhotoCropper(tkinter.Frame):
             self.zoommode = False
         else:
             self.zoommode = True
+        self.debug("Zoom mode: {0}".format(self.zoommode))
 
     def unzoom_image(self):
         self.canvas.delete(tkinter.ALL)
@@ -441,6 +479,7 @@ class PhotoCropper(tkinter.Frame):
         self.canvas_rects = []
         self.crop_rects = []
         self.displayimage()
+        log.debug("Canvas reset")
         
     def displayimage(self):
         self.photoimage = ImageTk.PhotoImage(self.image_thumb)
@@ -455,7 +494,8 @@ class PhotoCropper(tkinter.Frame):
 
     def loadimage(self):
         self.image = Image.open(self.filename)
-        self.textStatus.set(self.lbFiles.get(tkinter.ACTIVE))
+        self.textStatus.set("{0} size={1}".format(os.path.basename(self.filename), self.image.size))
+        log.debug("Loaded '{0}', size {1}".format(os.path.basename(self.filename), self.image.size))
         self.image_rect = Rect(self.image.size)
         self.image_rect.set_thumboffset(int(self.config['thumb-offset']))
         self.w = self.image_rect.w
@@ -481,26 +521,28 @@ class PhotoCropper(tkinter.Frame):
 
     def start_cropping(self):
         cropcount = 0
-        status = "{0} cropped: ".format(self.lbFiles.get(tkinter.ACTIVE))
+        status = "CROPPED {0} - region(s): ".format(self.lbFiles.get(tkinter.ACTIVE))
         for croparea in self.crop_rects:
             cropcount += 1
             filename = self.newfilename(cropcount)
             _, tail = os.path.split(filename) # Remove input directory
             self.crop(croparea, tail)
             status += "{0}:{1} ".format(cropcount, croparea)
-        self.textStatus.set(status.strip())
+        if cropcount != 0:
+            self.textStatus.set(status.strip())
 
     def crop(self, croparea, filename):
         ca = (croparea.left, croparea.top, croparea.right, croparea.bottom)
         newimg = self.image.crop(ca)
         imagePath = os.path.join(self.config['output-directory'], filename)
+        log.debug("Cropping area {0} of '{1}' to '{2}'".format(ca, os.path.basename(self.filename), imagePath))
         newimg.save(imagePath)
         
     def load_image_list(self):
         if self.config is not None:
             self.lbFiles.delete(0, tkinter.END)
             suffixtuple = tuple(re.split(self.delimiters, self.config['image-extensions']))
-            for item in os.listdir(self.config['input-directory']):
+            for item in sorted(os.listdir(self.config['input-directory'])):
                 if os.path.isfile(os.path.join(self.config['input-directory'], item)):
                     if item.lower().endswith(suffixtuple): # The arg can be a tuple of suffixes to look for
                         self.lbFiles.insert(tkinter.END, item)
@@ -698,15 +740,18 @@ class ScanConfig(object):
 
     def __init__(self, configFile=None, appName='PhotoCropper'):
         self.section = appName.upper()
-        self.get_default_config()
         
         if configFile is None:
             # Create default configuration in OS-independent "home" directory
             configPath = os.path.join(os.path.expanduser('~'), '.config', appName.lower())
             if not os.path.exists(configPath):
                 os.makedirs(configPath)
+                log.debug("Created default configuration path: '{0}'".format(configPath))
+
             self.configFile = os.path.join(configPath, 'config.ini')
+            log.debug("Loaded configuration from file: '{0}'".format(self.configFile))
             self.config = confpars.SafeConfigParser(self.get_default_config())
+            
             if os.path.exists(self.configFile):
                 self.config.read(self.configFile)
             else:
@@ -715,22 +760,25 @@ class ScanConfig(object):
             self.configFile = os.path.normpath(configFile)
             self.config = confpars.SafeConfigParser(self.get_default_config())
             self.config.read(self.configFile)
+            log.debug("Loaded configuration from file: '{0}'".format(self.configFile))
         else:
             # Path given, but does not exist
             raise Exception("Configuration file '{0}' does not exist".format(configFile))
-    
+        self.debug()
+
     # Gets default configuration
     def get_default_config(self):
-        return {
+        defconf = {
             'geometry'         : '1024x768+10+10', # Position and size of main window
             'input-directory'  : os.path.expanduser('~'), # Directory with pictures to process
             'output-directory' : os.path.expanduser('~'), # Directory to write resulting pictures into
             'image-extensions' : 'tif tiff jpg jpeg gif png', # Extensions of files considered to be pictures
-            'thumb-offset'     : '4', # Thumbnail offset
-            'stipple'          : 'gray12', # Stipple pattern
-            'move-step'        : '10', # Amount of pixels to move rectangle in all directions
-            'resize-step'      : '10' # Amount of pixels to resize rectangle
+            'thumb-offset'     : '4', # Thumbnail offset from edge of canvas
+            'stipple'          : 'gray12', # Stipple pattern ("net" that shows in crop area)
+            'move-resize-step' : '10', # Amount of pixels to move crop area in all directions or resize
         }
+        log.debug("Default configuration: {0}".format(defconf))
+        return defconf
 
     def __getitem__(self, key):
         return self.config.get(self.section, key)
@@ -741,6 +789,14 @@ class ScanConfig(object):
     def save(self):
         with open(self.configFile, 'w') as cf:
             self.config.write(cf)
+            log.debug("Configuration saved to file '{0}'".format(self.configFile))
+            
+    def debug(self):
+        for section_name in self.config.sections():
+            log.debug("Section: [{0}]".format(section_name))
+            for name, value in self.config.items(section_name):
+                log.debug("  {0} = {1}".format(name, value))
+            log.debug("")
 
 pass #---end-of-form---
 #------------------------------------------------------------------------------#
@@ -794,9 +850,17 @@ try:
         # Parse arguments
         parser = argparse.ArgumentParser(description='Picture cropper')
         parser.add_argument('-c', '--config', '--config-file', dest='configFile', default=None, help='Configuration file path')
-        parser.add_argument('-d', '--debug', default=0, help='Debug level')
+        parser.add_argument('-d', '--debug', default=False, action="store_true", dest="debug", help='Show debugging information')
+        parser.add_argument('-i', '--input-dir', '--input-directory', dest="inputDir", default=None, help='Input directory with pictures to be cropped')
+        parser.add_argument('-o', '--output-dir', '--output-directory', dest="outputDir", default=None, help='Output directory for storing cropped pictures')
         args = parser.parse_args()
-
+        
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
+        log = logging.getLogger('Photo Cropper')
+        if args.debug:
+            log.setLevel(logging.DEBUG)
+        log.debug(args)
+        
         '''
 
         Root = Tkinter.Tk()
@@ -810,6 +874,24 @@ try:
         App.pack(expand='yes', fill='both')
         # Load configuration
         conf = ScanConfig(args.configFile, App.__class__.__name__)
+        
+        # Process input parameters
+        if args.inputDir is not None:
+            # Check if input dir exists
+            if os.path.isdir(args.inputDir):
+                conf['input-directory'] = args.inputDir
+            else:
+                log.error("Value for input directory '{0}' is not a directory".format(args.inputDir))
+                exit(1)
+        
+        if args.outputDir is not None:
+            # Check if output dir exists
+            if os.path.isdir(args.outputDir):
+                conf['output-directory'] = args.outputDir
+            else:
+                log.error("Value for output directory '{0}' is not a directory".format(args.outputDir))
+                exit(1)
+
         # Set window
         Root.geometry(conf['geometry'])
         # Allow closing windows by clicking "X"
