@@ -285,7 +285,6 @@ class PhotoCropper(Tkinter.Frame):
 
     def on_lbFiles_mouseClick_1(self, event=None):
         self.lbIndex = self.lbFiles.curselection()[0]
-        print(self.lbIndex)
         self.load_lbFiles_image(self.lbFiles.get(self.lbIndex))
 
     def on_quitButton_ButRel_1(self, event=None):
