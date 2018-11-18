@@ -421,7 +421,7 @@ class PhotoCropper(Tkinter.Frame):
             self.zoommode = False
         else:
             self.zoommode = True
-        self.debug("Zoom mode: {0}".format(self.zoommode))
+        log9.debug("Zoom mode: {0}".format(self.zoommode))
 
     def unzoom_image(self):
         self.canvas.delete(Tkinter.ALL)
@@ -455,6 +455,7 @@ class PhotoCropper(Tkinter.Frame):
                 self.zoomButton.deselect()
 
     def redraw_rect(self):
+        self.displayimage()
         for croparea in self.crop_rects:
             self.drawrect(croparea.rescale_rect(self.scale, self.x0, self.y0))
 
@@ -494,7 +495,7 @@ class PhotoCropper(Tkinter.Frame):
 
     def loadimage(self):
         self.image = Image.open(self.filename)
-        self.textStatus.set("{0} size={1}".format(os.path.basename(self.filename), self.image.size))
+        self.textStatus.set("{0} size {1}".format(os.path.basename(self.filename), self.image.size))
         log.debug("Loaded '{0}', size {1}".format(os.path.basename(self.filename), self.image.size))
         self.image_rect = Rect(self.image.size)
         self.image_rect.set_thumboffset(int(self.config['thumb-offset']))
@@ -668,7 +669,7 @@ class Rect(object):
         r._update_dims()
         return r
 
-    # Rezire rectangle by certain amount on X- and Y- axis
+    # Resize rectangle by certain amount on X- and Y- axis
     def resize_rect(self, x0, y0):
         r = Rect()
         r.top = self.top
